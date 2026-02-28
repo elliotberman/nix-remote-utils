@@ -4,5 +4,5 @@
 }:
 lib.packagesFromDirectoryRecursive {
   inherit callPackage;
-  directory = ./pkgs;
+  directory = ../pkgs;
 }
