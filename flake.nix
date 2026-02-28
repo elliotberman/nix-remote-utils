@@ -13,7 +13,7 @@
         f: nixpkgs.lib.genAttrs (import systems) (system: f nixpkgs.legacyPackages.${system});
     in
     {
-      overlays.default = import ./overlay.nix;
+      overlays.default = import ./nix/overlay.nix;
 
       packages = nixpkgs.lib.genAttrs (import systems) (
         system:
@@ -32,6 +32,6 @@
         }
       );
 
-      formatter = forEachSystem (import ./treefmt.nix);
+      formatter = forEachSystem (import ./nix/treefmt.nix);
     };
 }
