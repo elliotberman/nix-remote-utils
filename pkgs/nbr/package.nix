@@ -5,7 +5,7 @@
   writeShellApplication,
 }:
 writeShellApplication {
-  name = "nor";
+  name = "nbr";
   runtimeInputs = [
     nix
     nix-output-monitor
