@@ -26,6 +26,7 @@
         {
           inherit (pkgs)
             nix-copy-as
+            nor
             ;
         }
       );
