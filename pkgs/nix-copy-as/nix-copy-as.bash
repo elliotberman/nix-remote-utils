@@ -13,11 +13,12 @@ Required Arguments:
   --to [USERNAME@]HOST     SSH username and host to connect to
 
 Optional Arguments:
-  --user USERNAME        Username to run 'nix build' as on remote via sudo
-                        (runs as SSH user if not specified)
-  --no-check-sigs        Disable signature checking on the remote
-  --verbose, -v          Enable verbose output (passed to nix build)
-  --help                 Show this help message
+  --trusted-user USERNAME  Run as this user on the remote. Should be in the
+                          trusted-users list (see 'nix show-config trusted-users').
+                          If not specified, runs as SSH user.
+  --no-check-sigs          Disable signature checking on the remote
+  --verbose, -v            Enable verbose output (passed to nix build)
+  --help                   Show this help message
 
 Pass-through Arguments:
   All common evaluation options, flake-related options, and logging options
@@ -67,9 +68,9 @@ while [[ $# -gt 0 ]]; do
     to_host="$2"
     shift 2
     ;;
-  --user)
+  --trusted-user)
     if [[ -z "${2:-}" ]]; then
-      echo "Error: --user requires a value"
+      echo "Error: --trusted-user requires a value"
       usage
     fi
     remote_user="$2"
