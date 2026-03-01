@@ -1,32 +1,12 @@
 #!/usr/bin/env bash
 
+show_help() {
+  SOURCE_DATE_EPOCH=1 man @mandir@/nor.1*
+}
+
 usage() {
-  cat <<EOF
-nor - A wrapper around "nom build" that also runs the resulting output
-
-Usage: nor [--pname NAME] [--target-host HOST] [--copy-to HOST] [--sudo] [--as] [--trusted-user USER] [--no-check-sigs] [NOM_BUILD_ARGS] -- [RUN_ARGS]
-
-Arguments:
-  --pname NAME           Specify the package name to run. If not specified,
-                        falls back to nix run behavior.
-  --target-host HOST     Copy the result to the specified remote host and run it there.
-  --copy-to HOST         Copy the result to the specified remote host (defaults to target-host if specified).
-                        If only --copy-to is specified (no --target-host), will only copy and not execute.
-  --sudo                Run the command with sudo
-  --as                  Use nix-copy-as instead of nix copy for copying
-  --trusted-user USER   Remote username for nix-copy-as (implies --as)
-  --no-check-sigs       Disable signature checking with nix-copy-as (implies --as)
-  NOM_BUILD_ARGS         Arguments passed directly to "nom build"
-  -- RUN_ARGS            Arguments passed to the executable after --
-
-Example:
-  nor --pname hello -- --version                         # Build and run locally
-  nor --target-host server1 --pname my-tool              # Build, copy to server1, and run on server1
-  nor --copy-to server1 --pname my-tool                  # Just copy to server1, don't execute
-  nor --sudo ./default.nix -- arg1 arg2                  # Build and run locally with sudo
-  nor --as --copy-to server1 --pname my-tool             # Copy using nix-copy-as
-EOF
-  exit 1
+  echo "Usage: nor [OPTIONS] [INSTALLABLE] [-- ARG...]"
+  echo "Try 'nor --help' for more information."
 }
 
 # Parse custom arguments
@@ -44,24 +24,27 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
   --pname)
     if [[ -z "$2" || "$2" == --* ]]; then
-      echo "Error: --pname requires a value"
-      usage
+      echo "Error: --pname requires a value" >&2
+      usage >&2
+      exit 1
     fi
     pname="$2"
     shift 2
     ;;
   --target-host)
     if [[ -z "$2" || "$2" == --* ]]; then
-      echo "Error: --target-host requires a value"
-      usage
+      echo "Error: --target-host requires a value" >&2
+      usage >&2
+      exit 1
     fi
     target_host="$2"
     shift 2
     ;;
   --copy-to)
     if [[ -z "$2" || "$2" == --* ]]; then
-      echo "Error: --copy-to requires a value"
-      usage
+      echo "Error: --copy-to requires a value" >&2
+      usage >&2
+      exit 1
     fi
     copy_to_host="$2"
     shift 2
@@ -76,8 +59,9 @@ while [[ $# -gt 0 ]]; do
     ;;
   --trusted-user)
     if [[ -z "$2" || "$2" == --* ]]; then
-      echo "Error: --trusted-user requires a value"
-      usage
+      echo "Error: --trusted-user requires a value" >&2
+      usage >&2
+      exit 1
     fi
     trusted_user="$2"
     use_nix_copy_as="yes"
@@ -89,7 +73,8 @@ while [[ $# -gt 0 ]]; do
     shift
     ;;
   --help)
-    usage
+    show_help
+    exit 0
     ;;
   --)
     # Everything after -- goes to run_args

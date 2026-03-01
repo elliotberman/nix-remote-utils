@@ -1,0 +1,112 @@
+.TH NOR 1 "2025" "nor" "User Commands"
+.SH NAME
+nor \- build and run Nix packages with nom
+.SH SYNOPSIS
+.B nor
+.RB [ OPTIONS ]
+.RI [ INSTALLABLE ]
+.RB [ --
+.IR ARG ...]
+.SH DESCRIPTION
+.B nor
+is a wrapper around "nom build" that builds Nix packages and runs the resulting executable. It can build locally and run either locally or on remote hosts, with optional copying to remote machines.
+.PP
+The tool automatically determines which executable to run from the build output, either by using the NIX_MAIN_PROGRAM attribute, the \-\-pname option, or treating the result as an executable.
+.SH OPTIONS
+.TP
+.BI "\-\-pname " "NAME"
+Specify the package name to run. This looks for an executable at result/bin/NAME. If not specified, uses the NIX_MAIN_PROGRAM attribute from the derivation.
+.TP
+.BI "\-\-target-host " "HOST"
+Copy the result to the remote host and run it there. The host must be reachable via SSH.
+.TP
+.BI "\-\-copy-to " "HOST"
+Copy the result to the remote host. If \-\-target-host is not specified, only copies without executing. Defaults to \-\-target-host value if that is set.
+.TP
+.B \-\-sudo
+Run the command with sudo (either locally or on the remote host).
+.TP
+.B \-\-as
+Use nix-copy-as instead of nix copy for copying to remote hosts.
+.TP
+.BI "\-\-trusted-user " "USER"
+Remote username for nix-copy-as. Implies \-\-as.
+.TP
+.B \-\-no-check-sigs
+Disable signature checking with nix-copy-as. Implies \-\-as.
+.TP
+.B \-\-help
+Show help message and exit.
+.SS "Nix Build Options"
+All unrecognized options are passed through to 'nom build'. This includes evaluation options like \-\-arg, \-\-argstr, flake options, and logging options. See
+.BR nom (1)
+and
+.BR nix-build (1)
+for details.
+.SS "Arguments After --"
+Any arguments after \-\- are passed directly to the executable when it runs.
+.SH EXAMPLES
+Build and run locally:
+.PP
+.RS
+.nf
+nor nixpkgs#hello
+nor \-\-pname hello .#myapp
+.fi
+.RE
+.PP
+Build locally, run on remote:
+.PP
+.RS
+.nf
+nor \-\-target-host server1 nixpkgs#htop
+nor \-\-target-host server1 \-\-sudo nixpkgs#htop
+.fi
+.RE
+.PP
+Build locally, copy to remote, run locally:
+.PP
+.RS
+.nf
+nor \-\-copy-to server1 .#myapp
+.fi
+.RE
+.PP
+Pass arguments to the executable:
+.PP
+.RS
+.nf
+nor nixpkgs#hello -- \-\-version
+nor .#myapp \-\-impure -- arg1 arg2
+.fi
+.RE
+.PP
+Use nix-copy-as for copying:
+.PP
+.RS
+.nf
+nor \-\-as \-\-copy-to server1 .#myapp
+nor \-\-trusted-user nixuser \-\-target-host server1 .#myapp
+nor \-\-no-check-sigs \-\-copy-to server1 .#myapp
+.fi
+.RE
+.SH HOW IT WORKS
+.B nor
+performs the following steps:
+.PP
+.IP 1. 4
+Builds the installable using nom build.
+.IP 2. 4
+If \-\-copy-to or \-\-target-host is specified, copies the result to the remote host using either nix copy or nix-copy-as.
+.IP 3. 4
+Determines which executable to run: uses \-\-pname if provided, otherwise checks NIX_MAIN_PROGRAM, or treats the result as executable.
+.IP 4. 4
+Runs the executable locally or on the remote host (if \-\-target-host is specified), optionally with sudo.
+.SH SEE ALSO
+.BR nom (1),
+.BR nix-build (1),
+.BR nix-copy-as (1),
+.BR nix-copy (1),
+.BR ssh (1)
+.SH AUTHORS
+Written by Elliot Berman.

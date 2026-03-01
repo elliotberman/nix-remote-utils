@@ -2,6 +2,7 @@
   lib,
   stdenv,
   jq,
+  man-db,
   nix-copy-as,
   nix-output-monitor,
   complgen,
@@ -26,12 +27,14 @@ stdenv.mkDerivation {
     runHook preInstall
 
     mkdir -p $out/bin
-    cp nor.bash $out/bin/nor
+    substitute nor.bash $out/bin/nor \
+      --replace-fail '@mandir@' "$out/share/man/man1"
     chmod +x $out/bin/nor
 
     wrapProgram $out/bin/nor \
       --prefix PATH : ${lib.makeBinPath [
         jq
+        man-db
         nix-copy-as
         nix-output-monitor
       ]}
@@ -39,7 +42,9 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+  postInstall = ''
+    installManPage nor.1
+  '' + lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     complgen --bash nor.bash nor.usage
     complgen --fish nor.fish nor.usage
     complgen --zsh _nor nor.usage
