@@ -1,6 +1,7 @@
 {
   lib,
   stdenv,
+  man-db,
   nix,
   nix-output-monitor,
   complgen,
@@ -25,11 +26,13 @@ stdenv.mkDerivation {
     runHook preInstall
 
     mkdir -p $out/bin
-    cp nbr.bash $out/bin/nbr
+    substitute nbr.bash $out/bin/nbr \
+      --replace-fail '@mandir@' "$out/share/man/man1"
     chmod +x $out/bin/nbr
 
     wrapProgram $out/bin/nbr \
       --prefix PATH : ${lib.makeBinPath [
+        man-db
         nix
         nix-output-monitor
       ]}
@@ -37,7 +40,9 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+  postInstall = ''
+    installManPage nbr.1
+  '' + lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     complgen --bash nbr.bash nbr.usage
     complgen --fish nbr.fish nbr.usage
     complgen --zsh _nbr nbr.usage

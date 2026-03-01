@@ -1,30 +1,10 @@
+show_help() {
+  SOURCE_DATE_EPOCH=1 man @mandir@/nbr.1*
+}
+
 usage() {
-  cat <<EOF
-nbr - build on any remote machine which is ssh-able
-
-Usage: nbr [OPTIONS] --builder <remote> <installable>...
-
-Arguments:
-  <installable>...        One or more Nix installables to build (e.g., .#package or github:user/repo#package)
-
-Options:
-  -b, --builder <remote>  Remote SSH host to build on (required)
-  --help                  Show this help message
-  --no-check-sigs         Skip signature checking when copying derivations
-  --keep-going            Continue building as many derivations as possible on failure
-
-Description:
-  Builds Nix derivations on remote machines by copying the derivations to
-  the remote machine, so that your local machine doesn't need to copy
-  intermediate artifacts. After building, the final build outputs are
-  copied back to the local machine.
-
-Examples:
-  nbr --builder build-server .#mypackage
-  nbr -b build-server .#mypackage .#anotherpackage
-  nbr --no-check-sigs --builder build-server .#mypackage
-  nbr --keep-going --no-check-sigs -b remote-host github:nixos/nixpkgs#hello .#local
-EOF
+  echo "Usage: nbr -b HOST [OPTIONS] INSTALLABLE..."
+  echo "Try 'nbr --help' for more information."
 }
 
 # Parse flags
@@ -36,7 +16,7 @@ positional_args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help)
-      usage
+      show_help
       exit 0
       ;;
     --no-check-sigs)
@@ -50,8 +30,7 @@ while [[ $# -gt 0 ]]; do
     -b|--builder)
       if [[ -z "$2" || "$2" == -* ]]; then
         echo "Error: --builder requires a value" >&2
-        echo >&2
-        usage
+        usage >&2
         exit 1
       fi
       remote="$2"
@@ -59,8 +38,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     -*)
       echo "Error: unknown option $1" >&2
-      echo >&2
-      usage
+      usage >&2
       exit 1
       ;;
     *)
@@ -70,17 +48,20 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+errors=()
 if [[ -z "$remote" ]]; then
-  echo "Error: --builder is required" >&2
-  echo >&2
-  usage
-  exit 1
+  errors+=("--builder is required")
 fi
 
 if (( ${#positional_args[@]} < 1 )); then
-  echo "Error: expected at least one installable (got ${#positional_args[@]})" >&2
-  echo >&2
-  usage
+  errors+=("At least one installable is required")
+fi
+
+if [[ ${#errors[@]} -gt 0 ]]; then
+  for error in "${errors[@]}"; do
+    echo "Error: $error" >&2
+  done
+  usage >&2
   exit 1
 fi
 

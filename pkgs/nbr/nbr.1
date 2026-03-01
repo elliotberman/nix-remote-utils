@@ -1,0 +1,94 @@
+.TH NBR 1 "2025" "nbr" "User Commands"
+.SH NAME
+nbr \- build on remote machines via SSH
+.SH SYNOPSIS
+.B nbr
+.B \-b
+.I HOST
+.RB [ OPTIONS ]
+.IR INSTALLABLE ...
+.SH DESCRIPTION
+.B nbr
+builds Nix derivations on remote machines by copying the derivations to the remote machine, building them there, and copying the results back. This avoids copying intermediate build artifacts and allows using remote build capacity.
+.PP
+The remote machine does the actual building, so your local machine only needs to evaluate the derivations and handle the final outputs.
+.SH OPTIONS
+.TP
+.BR \-b ", " \-\-builder " " \fIHOST\fR
+Remote SSH host to build on (required). The host must be reachable via SSH and have Nix installed.
+.TP
+.B \-\-no-check-sigs
+Skip signature checking when copying derivations and build outputs.
+.TP
+.B \-\-keep-going
+Continue building as many derivations as possible on failure. Passed to nix build.
+.TP
+.B \-\-help
+Show help message and exit.
+.SS "Nix Build Options"
+All unrecognized options are passed through to 'nix build'. This includes evaluation options like \-\-arg, \-\-argstr, flake options, and logging options. See
+.BR nix-build (1)
+for details.
+.SH EXAMPLES
+Build a package on a remote server:
+.PP
+.RS
+.nf
+nbr \-b build-server .#mypackage
+nbr \-\-builder build-server nixpkgs#hello
+.fi
+.RE
+.PP
+Build multiple packages:
+.PP
+.RS
+.nf
+nbr \-b build-server .#package1 .#package2
+.fi
+.RE
+.PP
+Build with additional Nix options:
+.PP
+.RS
+.nf
+nbr \-b build-server \-\-impure .#myapp
+nbr \-b build-server \-\-argstr version "1.0" .#myapp
+.fi
+.RE
+.PP
+Build without signature checking:
+.PP
+.RS
+.nf
+nbr \-b build-server \-\-no-check-sigs .#mypackage
+.fi
+.RE
+.PP
+Continue building on failure:
+.PP
+.RS
+.nf
+nbr \-b build-server \-\-keep-going .#pkg1 .#pkg2 .#pkg3
+.fi
+.RE
+.SH HOW IT WORKS
+.B nbr
+performs the following steps:
+.PP
+.IP 1. 4
+Evaluates all installables locally and collects their .drvPath values.
+.IP 2. 4
+Copies all derivations to the remote machine using nix copy.
+.IP 3. 4
+Builds all derivations on the remote machine using nom build with the remote as both store and builder.
+.IP 4. 4
+Copies the build outputs back to the local machine.
+.PP
+This approach means intermediate build dependencies stay on the remote machine and only final outputs are transferred back, which can significantly reduce bandwidth usage for large builds.
+.SH SEE ALSO
+.BR nom (1),
+.BR nix-build (1),
+.BR nix-copy (1),
+.BR ssh (1)
+.SH AUTHORS
+Written by Elliot Berman.
