@@ -1,0 +1,165 @@
+nix-copy-as (<OPTION> | <NIX_COMPLETE>)...;
+
+<OPTION> ::= --to <HOST>                                                                "SSH username and host to connect to"
+           | --trusted-user <USER>                                                      "Run as this user on the remote (should be in trusted-users)"
+           | --no-check-sigs                                                            "Disable signature checking on the remote"
+           | --help                                                                     "Show help message"
+           | --arg <NIX_COMPLETE> <NIX_COMPLETE>                                        "Pass argument to Nix expression"
+           | --arg-from-file <NIX_COMPLETE> <NIX_COMPLETE>                              "Pass argument from file to Nix expression"
+           | --argstr <NIX_COMPLETE> <NIX_COMPLETE>                                     "Pass string argument to Nix expression"
+           | --override-flake <NIX_COMPLETE> <NIX_COMPLETE>                             "Override a flake input"
+           | --override-input <NIX_COMPLETE> <NIX_COMPLETE>                             "Override a flake input"
+           | --arg-from-stdin <NIX_COMPLETE>                                            "Pass argument from stdin to Nix expression"
+           | --eval-store <NIX_COMPLETE>                                                "Evaluation store URI"
+           | (--include <NIX_COMPLETE> || -I <NIX_COMPLETE>)                            "Add path to Nix search path"
+           | --inputs-from <NIX_COMPLETE>                                               "Copy flake inputs from another flake"
+           | --output-lock-file <NIX_COMPLETE>                                          "Write the lock file to a different path"
+           | --reference-lock-file <NIX_COMPLETE>                                       "Read lock file from path"
+           | --update-input <NIX_COMPLETE>                                              "Update a specific flake input"
+           | --log-format <NIX_COMPLETE>                                                "Set log format"
+           ;
+
+<HOST> ::= {{{}}};
+
+<HOST@bash> ::= {{{ _comp_compgen_known_hosts -a "$@" }}};
+
+<HOST@zsh> ::= {{{ _ssh_hosts "$@" }}};
+
+<USER> ::= {{{}}};
+
+<NIX_COMPLETE> ::= {{{}}};
+
+<NIX_COMPLETE@bash> ::= {{{
+  local -a words_real cword_real cur_real
+  _get_comp_words_by_ref -n ':=&' words_real cword_real cur_real
+
+  local -a nix_words=("nix" "build")
+  local skip_next=0
+
+  for (( i=1; i<cword_real; i++ )); do
+    if (( skip_next )); then
+      skip_next=0
+      continue
+    fi
+
+    case "${words_real[i]}" in
+      --to|--trusted-user)
+        skip_next=1
+        ;;
+      --no-check-sigs|--help)
+        # Skip these nix-copy-as specific options
+        ;;
+      *)
+        nix_words+=("${words_real[i]}")
+        ;;
+    esac
+  done
+
+  # Add the current word being completed
+  nix_words+=("${cur_real}")
+  local nix_position=$((${#nix_words[@]} - 1))
+
+  local have_type
+  while IFS= read -r line; do
+    local completion=${line%%	*}
+    if [[ -z $have_type ]]; then
+      have_type=1
+      if [[ $completion == filenames ]]; then
+        compopt -o filenames
+      elif [[ $completion == attrs ]]; then
+        compopt -o nospace
+      fi
+      continue
+    fi
+
+    if [[ "${cur_real}" =~ "=" ]]; then
+      completion="${completion#*=}"
+    fi
+
+    COMPREPLY+=("${completion}")
+  done < <(NIX_GET_COMPLETIONS=$nix_position "${nix_words[@]}" 2>/dev/null)
+  __ltrim_colon_completions "$cur_real"
+}}};
+
+<NIX_COMPLETE@fish> ::= {{{
+  set -l nix_args "nix" "build"
+  set -l all_args (commandline --current-process --tokenize --cut-at-cursor)
+  set -l current_token (commandline --current-token --cut-at-cursor)
+
+  set -l skip_next 0
+  for i in (seq 2 (count $all_args))
+    if test $skip_next -eq 1
+      set skip_next 0
+      continue
+    end
+
+    switch $all_args[$i]
+      case --to --trusted-user
+        set skip_next 1
+      case --no-check-sigs --help
+        # Skip these nix-copy-as specific options
+      case '*'
+        set -a nix_args $all_args[$i]
+    end
+  end
+
+  set -l nix_position (count $nix_args)
+  set -l response (env NIX_GET_COMPLETIONS=$nix_position $nix_args $current_token 2>/dev/null)
+  string collect -- $response[2..-1]
+}}};
+
+<NIX_COMPLETE@zsh> ::= {{{
+  local -a nix_words
+  local skip_next=0
+  local nix_position=-1
+
+  nix_words=("nix" "build")
+
+  for i in {2..$#words}; do
+    if (( skip_next )); then
+      skip_next=0
+      continue
+    fi
+
+    local word="${words[i]}"
+    case "$word" in
+      --to|--trusted-user)
+        skip_next=1
+        ;;
+      --no-check-sigs|--verbose|-v|--help)
+        # Skip these nix-copy-as specific options
+        ;;
+      *)
+        nix_words+=("${(Q)word}")
+        if (( i == CURRENT )); then
+          nix_position=$#nix_words
+        fi
+        ;;
+    esac
+  done
+
+  # If CURRENT is beyond the processed words
+  if (( nix_position == -1 )); then
+    nix_position=$(($#nix_words + 1))
+  fi
+
+  # Convert to 0-indexed
+  nix_position=$((nix_position - 1))
+
+  local ifs_bk="$IFS"
+  IFS=$'\n'
+  local res=($(NIX_GET_COMPLETIONS=$nix_position "${nix_words[@]}" 2>/dev/null))
+  IFS="$ifs_bk"
+  local tpe="${${res[1]}%%>	*}"
+  local -a suggestions
+  for suggestion in ${res:1}; do
+    suggestions+=("${suggestion%%	*}")
+  done
+  if [[ "$tpe" == filenames ]]; then
+    compadd -f -a suggestions
+  elif [[ "$tpe" == attrs ]]; then
+    compadd -S '' -a suggestions
+  else
+    compadd -a suggestions
+  fi
+}}};
