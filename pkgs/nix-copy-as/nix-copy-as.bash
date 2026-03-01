@@ -1,43 +1,12 @@
 set -euo pipefail
 
+show_help() {
+  SOURCE_DATE_EPOCH=1 man @mandir@/nix-copy-as.1*
+}
+
 usage() {
-  cat <<EOF
-nix-copy-as - Copy Nix store paths to a remote host via nix-serve
-
-This script emulates "nix copy --to" but works around signature checking by
-using nix-serve as a temporary substituter.
-
-Usage: nix-copy-as [OPTIONS] [INSTALLABLE...]
-
-Required Arguments:
-  --to [USERNAME@]HOST     SSH username and host to connect to
-
-Optional Arguments:
-  --trusted-user USERNAME  Run as this user on the remote. Should be in the
-                          trusted-users list (see 'nix show-config trusted-users').
-                          If not specified, runs as SSH user.
-  --no-check-sigs          Disable signature checking on the remote
-  --verbose, -v            Enable verbose output (passed to nix build)
-  --help                   Show this help message
-
-Pass-through Arguments:
-  All common evaluation options, flake-related options, and logging options
-  are passed through to 'nix build'. See 'nix build --help' for details.
-
-Installables:
-  One or more Nix installables (e.g., nixpkgs#hello, .#package)
-
-Example:
-  nix-copy-as --to user@remote-host nixpkgs#hello
-  nix-copy-as --to user@remote-host --no-check-sigs .#mypackage
-
-How it works:
-  1. Builds the installable(s) locally with nom
-  2. Finds a free port (starting at 5001) and starts nix-serve
-  3. SSH port-forwards the nix-serve to the remote
-  4. Runs 'nix build' on remote using the forwarded substituter
-EOF
-  exit 1
+  echo "Usage: nix-copy-as --to [USER@]HOST [OPTIONS] INSTALLABLE..."
+  echo "Try 'nix-copy-as --help' for more information."
 }
 
 # shellcheck disable=SC2329 # bad at figuring out trap
@@ -62,16 +31,18 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
   --to)
     if [[ -z "${2:-}" ]]; then
-      echo "Error: --to requires a value (username@host)"
-      usage
+      echo "Error: --to requires a value (username@host)" >&2
+      usage >&2
+      exit 1
     fi
     to_host="$2"
     shift 2
     ;;
   --trusted-user)
     if [[ -z "${2:-}" ]]; then
-      echo "Error: --trusted-user requires a value"
-      usage
+      echo "Error: --trusted-user requires a value" >&2
+      usage >&2
+      exit 1
     fi
     remote_user="$2"
     shift 2
@@ -81,7 +52,8 @@ while [[ $# -gt 0 ]]; do
     shift
     ;;
   --help)
-    usage
+    show_help
+    exit 0
     ;;
   # Common evaluation options (local only, 2 args)
   --arg | --arg-from-file | --argstr | --override-flake)
@@ -136,14 +108,21 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate required arguments
+errors=()
 if [[ -z "$to_host" ]]; then
-  echo "Error: --to username@host is required"
-  usage
+  errors+=("--to username@host is required")
 fi
 
 if [[ ${#installables[@]} -eq 0 ]]; then
-  echo "Error: At least one installable is required"
-  usage
+  errors+=("At least one installable is required")
+fi
+
+if [[ ${#errors[@]} -gt 0 ]]; then
+  for error in "${errors[@]}"; do
+    echo "Error: $error" >&2
+  done
+  usage >&2
+  exit 1
 fi
 
 # Find a free port starting from 5001

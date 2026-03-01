@@ -1,0 +1,156 @@
+.TH NIX-COPY-AS 1 "2025" "nix-copy-as" "User Commands"
+.SH NAME
+nix-copy-as \- copy Nix store paths to a remote host via nix-serve
+.SH SYNOPSIS
+.B nix-copy-as
+.RB [ OPTIONS ]
+.IR INSTALLABLE ...
+.SH DESCRIPTION
+.B nix-copy-as
+emulates "nix copy \-\-to" but works around signature checking by using nix-serve as a temporary substituter. It builds installables locally, starts a temporary nix-serve instance, and uses SSH port forwarding to make the built paths available to the remote machine as a substituter.
+.PP
+This is useful when copying store paths to a remote machine where you want them installed as a different user (via \-\-trusted-user) or when signature checking needs to be bypassed.
+.SH OPTIONS
+.SS "Required Options"
+.TP
+.BI "\-\-to " "[USERNAME@]HOST"
+SSH username and host to connect to. The remote must be reachable via SSH.
+.SS "Optional Options"
+.TP
+.BI "\-\-trusted-user " "USERNAME"
+Run as this user on the remote machine. The user should be in the trusted-users list (see 'nix show-config trusted-users'). If not specified, runs as the SSH user.
+.TP
+.B \-\-no-check-sigs
+Disable signature checking on the remote when copying store paths.
+.TP
+.BR \-v ", " \-\-verbose
+Enable verbose output. Passed to nix build and affects nix-serve output.
+.TP
+.B \-\-help
+Show help message and exit.
+.SS "Nix Evaluation Options"
+The following Nix evaluation options are passed through to 'nix build':
+.TP
+.BI "\-\-arg " "NAME VALUE"
+Pass argument to Nix expression.
+.TP
+.BI "\-\-arg-from-file " "NAME PATH"
+Pass argument from file to Nix expression.
+.TP
+.BI "\-\-argstr " "NAME VALUE"
+Pass string argument to Nix expression.
+.TP
+.BI "\-\-arg-from-stdin " "NAME"
+Pass argument from stdin to Nix expression.
+.TP
+.BI "\-\-eval-store " "URI"
+Evaluation store URI.
+.TP
+.BI "\-I " "PATH"
+.TQ
+.BI "\-\-include " "PATH"
+Add path to Nix search path.
+.SS "Flake Options"
+.TP
+.BI "\-\-override-flake " "FLAKE-URL OVERRIDE"
+Override a flake input.
+.TP
+.BI "\-\-override-input " "INPUT OVERRIDE"
+Override a flake input.
+.TP
+.BI "\-\-inputs-from " "FLAKE"
+Copy flake inputs from another flake.
+.TP
+.BI "\-\-output-lock-file " "PATH"
+Write the lock file to a different path.
+.TP
+.BI "\-\-reference-lock-file " "PATH"
+Read lock file from path.
+.TP
+.BI "\-\-update-input " "INPUT"
+Update a specific flake input.
+.TP
+.B \-\-commit-lock-file
+Commit changes to flake.lock.
+.TP
+.B \-\-no-registries
+Don't use flake registries.
+.TP
+.B \-\-no-update-lock-file
+Don't update flake.lock.
+.TP
+.B \-\-no-write-lock-file
+Don't write flake.lock.
+.TP
+.B \-\-recreate-lock-file
+Recreate flake.lock from scratch.
+.TP
+.B \-\-debugger
+Start Nix debugger on evaluation errors.
+.TP
+.B \-\-impure
+Allow impure expressions.
+.SS "Logging Options"
+.TP
+.BI "\-\-log-format " "FORMAT"
+Set log format (raw, raw-with-logs, internal-json, bar, bar-with-logs).
+.TP
+.B \-\-debug
+Enable debug output.
+.TP
+.BR \-L ", " \-\-print-build-logs
+Print full build logs on stderr.
+.TP
+.B \-\-quiet
+Decrease verbosity.
+.SH HOW IT WORKS
+.B nix-copy-as
+works by:
+.PP
+.IP 1. 4
+Building the installable(s) locally using nom (nix-output-monitor).
+.IP 2. 4
+Finding a free port (starting at 5001) and starting nix-serve locally.
+.IP 3. 4
+Using SSH port forwarding to make the nix-serve available on the remote machine.
+.IP 4. 4
+Running 'nix build' on the remote using the forwarded port as a substituter, which copies the store paths.
+.SH EXAMPLES
+Copy the hello package from nixpkgs to a remote host:
+.PP
+.RS
+.nf
+nix-copy-as \-\-to user@remote-host nixpkgs#hello
+.fi
+.RE
+.PP
+Copy a local package without signature checking:
+.PP
+.RS
+.nf
+nix-copy-as \-\-to user@remote-host \-\-no-check-sigs .#mypackage
+.fi
+.RE
+.PP
+Copy and install as a trusted user on the remote:
+.PP
+.RS
+.nf
+nix-copy-as \-\-to user@remote-host \-\-trusted-user nixuser .#myapp
+.fi
+.RE
+.PP
+Copy with additional Nix arguments:
+.PP
+.RS
+.nf
+nix-copy-as \-\-to user@remote \-\-impure \-\-argstr version "1.2.3" .#app
+.fi
+.RE
+.SH SEE ALSO
+.BR nix-build (1),
+.BR nix-copy (1),
+.BR nix-serve (1),
+.BR ssh (1)
+.SH AUTHORS
+Written by Elliot Berman.

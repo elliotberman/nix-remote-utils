@@ -2,6 +2,7 @@
   lib,
   stdenv,
   lsof,
+  man-db,
   nix,
   nix-output-monitor,
   nix-serve-ng,
@@ -28,12 +29,14 @@ stdenv.mkDerivation {
     runHook preInstall
 
     mkdir -p $out/bin
-    cp nix-copy-as.bash $out/bin/nix-copy-as
+    substitute nix-copy-as.bash $out/bin/nix-copy-as \
+      --replace-fail '@mandir@' "$out/share/man/man1"
     chmod +x $out/bin/nix-copy-as
 
     wrapProgram $out/bin/nix-copy-as \
       --prefix PATH : ${lib.makeBinPath [
         lsof
+        man-db
         nix
         nix-output-monitor
         nix-serve-ng
@@ -43,7 +46,9 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+  postInstall = ''
+    installManPage nix-copy-as.1
+  '' + lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     complgen --bash nix-copy-as.bash nix-copy-as.usage
     complgen --fish nix-copy-as.fish nix-copy-as.usage
     complgen --zsh _nix-copy-as nix-copy-as.usage
