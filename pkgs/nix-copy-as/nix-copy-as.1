@@ -11,11 +11,9 @@ emulates "nix copy \-\-to" but works around signature checking by using nix-serv
 .PP
 This is useful when copying store paths to a remote machine where you want them installed as a different user (via \-\-trusted-user) or when signature checking needs to be bypassed.
 .SH OPTIONS
-.SS "Required Options"
 .TP
 .BI "\-\-to " "[USERNAME@]HOST"
-SSH username and host to connect to. The remote must be reachable via SSH.
-.SS "Optional Options"
+SSH username and host to connect to. The remote must be reachable via SSH. This option is required.
 .TP
 .BI "\-\-trusted-user " "USERNAME"
 Run as this user on the remote machine. The user should be in the trusted-users list (see 'nix show-config trusted-users'). If not specified, runs as the SSH user.
