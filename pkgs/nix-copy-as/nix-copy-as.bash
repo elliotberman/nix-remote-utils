@@ -27,6 +27,12 @@ installables=()
 local_nix_args=()
 logging_args=()
 
+# Check if nom is available, fallback to nix
+nix="nom"
+if ! command -v "$nix" &>/dev/null; then
+  nix="nix"
+fi
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
   --to)
@@ -140,7 +146,7 @@ echo "Building installables locally: ${installables[*]}"
 
 # BUILD: Build locally and collect store paths
 store_paths=()
-build_output=$(nom build --no-link --print-out-paths "${local_nix_args[@]}" "${logging_args[@]}" "${installables[@]}" 2>&1)
+build_output=$("$nix" build --no-link --print-out-paths "${local_nix_args[@]}" "${logging_args[@]}" "${installables[@]}" 2>&1)
 build_exit=$?
 
 echo "$build_output"
