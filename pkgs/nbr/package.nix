@@ -7,6 +7,7 @@
   complgen,
   installShellFiles,
   makeWrapper,
+  runtimeShell,
 }:
 stdenv.mkDerivation {
   pname = "nbr";
@@ -27,15 +28,9 @@ stdenv.mkDerivation {
 
     mkdir -p $out/bin
     substitute nbr.bash $out/bin/nbr \
+      --replace-fail '#!/usr/bin/env bash' '#!${runtimeShell}' \
       --replace-fail '@mandir@' "$out/share/man/man1"
     chmod +x $out/bin/nbr
-
-    wrapProgram $out/bin/nbr \
-      --prefix PATH : ${lib.makeBinPath [
-        man-db
-        nix
-        nix-output-monitor
-      ]}
 
     runHook postInstall
   '';

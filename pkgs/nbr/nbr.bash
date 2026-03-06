@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 show_help() {
   SOURCE_DATE_EPOCH=1 man @mandir@/nbr.1*
 }
