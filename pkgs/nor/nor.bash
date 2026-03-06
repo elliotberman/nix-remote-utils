@@ -17,8 +17,14 @@ sudo_prefix=""
 use_nix_copy_as=""
 trusted_user=""
 no_check_sigs=""
-nom_build_args=()
+nix_build_args=()
 run_args=()
+
+# Check if nom is available, fallback to nix
+nix="nom"
+if ! command -v "$nix" &>/dev/null; then
+  nix="nix"
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -83,28 +89,28 @@ while [[ $# -gt 0 ]]; do
     break
     ;;
   *)
-    nom_build_args+=("$1")
+    nix_build_args+=("$1")
     shift
     ;;
   esac
 done
 
-# BUILD: Run nom build and get the result path
-echo "Running nom build --no-link --print-out-paths ${nom_build_args[*]}"
-build_output=$(nom build --no-link --print-out-paths "${nom_build_args[@]}")
+# BUILD: Run nix build and get the result path
+echo "Running $nix build --no-link --print-out-paths ${nix_build_args[*]}"
+build_output=$("$nix" build --no-link --print-out-paths "${nix_build_args[@]}")
 build_exit_code=$?
 
 echo "$build_output"
 
 if [[ $build_exit_code -ne 0 ]]; then
-  echo "Error: nom build failed with exit code $build_exit_code"
+  echo "Error: $nix build failed with exit code $build_exit_code"
   exit $build_exit_code
 fi
 
 build_result=$(echo "$build_output" | tail -n1 | grep -E '^/nix/store/' | tr -d '[:space:]')
 
 if [[ -z "$build_result" ]]; then
-  echo "Error: Could not determine build result path from nom build output"
+  echo "Error: Could not determine build result path from $nix build output"
   exit 1
 fi
 
