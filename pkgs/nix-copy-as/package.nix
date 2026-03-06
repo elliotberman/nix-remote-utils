@@ -36,11 +36,7 @@ stdenv.mkDerivation {
     wrapProgram $out/bin/nix-copy-as \
       --prefix PATH : ${lib.makeBinPath [
         lsof
-        man-db
-        nix
-        nix-output-monitor
         nix-serve-ng
-        openssh
       ]}
 
     runHook postInstall
