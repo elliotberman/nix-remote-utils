@@ -34,9 +34,7 @@ stdenv.mkDerivation {
     wrapProgram $out/bin/nor \
       --prefix PATH : ${lib.makeBinPath [
         jq
-        man-db
         nix-copy-as
-        nix-output-monitor
       ]}
 
     runHook postInstall
