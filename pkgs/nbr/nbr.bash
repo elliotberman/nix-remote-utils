@@ -13,6 +13,12 @@ keep_going=""
 remote=""
 positional_args=()
 
+# Check if nom is available, fallback to nix
+nix="nom"
+if ! command -v "$nix" &>/dev/null; then
+  nix="nix"
+fi
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help)
@@ -84,7 +90,7 @@ build_args=()
 for drvPath in "${drvPaths[@]}"; do
   build_args+=("$drvPath^*")
 done
-mapfile -t paths < <(nom build "${build_args[@]}" --store "ssh-ng://$remote" --builders "ssh-ng://$remote" --no-link --print-out-paths $keep_going)
+mapfile -t paths < <("$nix" build "${build_args[@]}" --store "ssh-ng://$remote" --builders "ssh-ng://$remote" --no-link --print-out-paths $keep_going)
 
 # Copy built outputs back to local machine
 echo "Copying build outputs from $remote..."
