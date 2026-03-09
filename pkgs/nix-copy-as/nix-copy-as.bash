@@ -198,11 +198,10 @@ if [[ -n "$remote_user" ]]; then
   remote_cmd+=(sudo -u "$remote_user")
 fi
 
-remote_cmd+=(nix build)
-remote_cmd+=(--option substituters "http://localhost:$serve_port")
+remote_cmd+=(nix copy --from "http://localhost:$serve_port")
 
 if [[ -n "$no_check_sigs" ]]; then
-  remote_cmd+=(--option require-sigs false)
+  remote_cmd+=(--no-check-sigs)
 fi
 
 remote_cmd+=("${store_paths[@]}")
